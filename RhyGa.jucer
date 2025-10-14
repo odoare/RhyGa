@@ -40,7 +40,6 @@
   <EXPORTFORMATS>
     <LINUX_MAKE targetFolder="Builds/LinuxMakefile">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="RhyGa"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="RhyGa"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
@@ -61,7 +60,6 @@
     </LINUX_MAKE>
     <VS2022 targetFolder="Builds/VisualStudio2022">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="RhyGa"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="RhyGa"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
