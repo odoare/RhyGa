@@ -125,6 +125,10 @@ private:
     juce::TextButton linkNoneButton   { "0" };
     juce::TextButton linkInvertButton { "/" };
 
+    // Master On/Off buttons
+    juce::TextButton masterOnButton  { "On" };
+    juce::TextButton masterOffButton { "Off" };
+
     fxme::FxmeLookAndFeel fxmeLookAndFeel;
 
     int lastActiveStep = -1;

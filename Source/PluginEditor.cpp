@@ -6,8 +6,8 @@
 //==============================================================================
 StepComponent::StepComponent(RhythmicGateAudioProcessor& p, int step, juce::LookAndFeel_V4& lookAndFeel) :
     onOffButton(p.apvts, ParameterID::get(step, "ON"), "", juce::Colours::cyan),
-    durationKnob(p.apvts, ParameterID::get(step, "DUR"), juce::Colours::purple.darker(), juce::Slider::LinearHorizontal),
-    panKnob(p.apvts, ParameterID::get(step, "PAN"), juce::Colours::yellow.darker(1.5f), juce::Slider::LinearHorizontal),
+    durationKnob(p.apvts, ParameterID::get(step, "DUR"), juce::Colours::magenta.darker(1.2f), juce::Slider::LinearHorizontal),
+    panKnob(p.apvts, ParameterID::get(step, "PAN"), juce::Colours::orange.darker(), juce::Slider::LinearHorizontal),
     levelMeter(p.apvts, ParameterID::get(step, "LVL"), juce::Colours::green),
     auxSendMeter(p.apvts, ParameterID::get(step, "AUX_LVL"), juce::Colours::cornflowerblue)
 {
@@ -29,8 +29,8 @@ StepComponent::StepComponent(RhythmicGateAudioProcessor& p, int step, juce::Look
 
     // Link Button (GUI only, no APVTS attachment)
     linkButton.setButtonText(""); // Small indicator
-    linkButton.setToggleState(true, juce::dontSendNotification); // Default to linked
-    linkButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::grey);
+    linkButton.setToggleState(false, juce::dontSendNotification); // Default to not linked
+    linkButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::grey.darker());
     linkButton.setLookAndFeel(&lookAndFeel);
     addAndMakeVisible(linkButton);
 }
@@ -45,7 +45,7 @@ void StepComponent::resized()
     mainBox.items.add(juce::FlexItem(panKnob).withFlex(1.0f).withMargin(margin));
     mainBox.items.add(juce::FlexItem(levelMeter).withFlex(1.0f).withMargin(margin));
     mainBox.items.add(juce::FlexItem(auxSendMeter).withFlex(1.0f).withMargin(margin));
-    mainBox.items.add(juce::FlexItem(linkButton).withFlex(0.5f).withMargin(2));
+    mainBox.items.add(juce::FlexItem(linkButton).withFlex(0.5f).withMargin(juce::FlexItem::Margin(2.f, 10.f, 2.f, 10.f)));
     mainBox.performLayout(getLocalBounds());
 }
 
@@ -55,14 +55,15 @@ void StepComponent::paint(juce::Graphics& g)
 
     if (active)
     {
-        g.setColour(juce::Colours::yellow.withAlpha(0.6f));
+        g.setColour(juce::Colours::white.withAlpha(0.6f));
         g.fillRoundedRectangle(bounds.toFloat(), 4.0f);
+        g.drawRoundedRectangle(bounds.toFloat(), 4.0f, 2.0f);
     }
     else if (isAccented)
     {
         // Draw a slightly lighter background for accented steps
-        auto backgroundColour = juce::Colour::fromFloatRGBA (0.15f, 0.15f, 0.25f, 1.0f);
-        g.setColour(backgroundColour.brighter(0.2f));
+        //auto backgroundColour = juce::Colour::fromFloatRGBA (0.15f, 0.15f, 0.25f, 1.0f);
+        g.setColour(juce::Colour::fromFloatRGBA (0.25f, 0.25f, 0.3f, 1.0f));
         g.fillRoundedRectangle(bounds.toFloat(), 4.0f);
     }
 }
@@ -89,19 +90,19 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
     : AudioProcessorEditor (&p), audioProcessor (p),
       attackKnob(p.apvts, "ATTACK", "Attack", juce::Colours::orangered.darker()),
       releaseKnob(p.apvts, "RELEASE", "Release", juce::Colours::orangered.darker()),
-      masterDurationKnob(p.apvts, "masterDur", juce::Colours::purple.darker(), juce::Slider::LinearHorizontal),
-      masterPanKnob(p.apvts, "masterPan", juce::Colours::yellow.darker(), juce::Slider::LinearHorizontal),
+      masterDurationKnob(p.apvts, "masterDur", juce::Colours::magenta.darker(1.2f), juce::Slider::LinearHorizontal),
+      masterPanKnob(p.apvts, "masterPan", juce::Colours::orange.darker(), juce::Slider::LinearHorizontal),
       masterLevelMeter(p.apvts, "masterLvl", juce::Colours::green),
       masterAuxSendMeter(p.apvts, "masterAux", juce::Colours::cornflowerblue)
 
 {
-    // Global metric selector
-    metricSelector.addItem("32nd",   1);
-    metricSelector.addItem("32nd T", 2);
+    // Global metric selector (reordered to match PluginProcessor.cpp)
+    metricSelector.addItem("8th",    1);
+    metricSelector.addItem("8th T",  2);
     metricSelector.addItem("16th",   3);
     metricSelector.addItem("16th T", 4);
-    metricSelector.addItem("8th",    5);
-    metricSelector.addItem("8th T",  6);
+    metricSelector.addItem("32nd",   5);
+    metricSelector.addItem("32nd T", 6);
     addAndMakeVisible(metricSelector);
     metricAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.apvts, "METRIC", metricSelector);
     metricSelector.onChange = [this] { updateStepAccents(); };
@@ -123,6 +124,25 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
     releaseKnob.slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     releaseKnob.setLookAndFeel(&fxmeLookAndFeel);
     
+    // --- Master On/Off Buttons ---
+    addAndMakeVisible(masterOnButton);
+    masterOnButton.setLookAndFeel(&fxmeLookAndFeel);
+    masterOnButton.setColour(juce::TextButton::buttonColourId, juce::Colours::cyan.darker());
+    masterOnButton.onClick = [this] {
+        for (auto& step : stepComponents)
+            if (step->linkButton.getToggleState())
+                step->onOffButton.button.setToggleState(true, juce::sendNotification);
+    };
+
+    addAndMakeVisible(masterOffButton);
+    masterOffButton.setLookAndFeel(&fxmeLookAndFeel);
+    masterOffButton.setColour(juce::TextButton::buttonColourId, juce::Colours::cyan.darker(2.0f));
+    masterOffButton.onClick = [this] {
+        for (auto& step : stepComponents)
+            if (step->linkButton.getToggleState())
+                step->onOffButton.button.setToggleState(false, juce::sendNotification);
+    };
+
     // --- Link Control Buttons ---
     auto setupLinkButton = [this](juce::TextButton& button)
     {
@@ -160,15 +180,15 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
     masterDurationKnob.slider.setRange(0.0, 1.0, 0.01);
     masterDurationKnob.slider.setValue(1.0, juce::dontSendNotification);
 
-    masterLevelMeter.slider.setRange(-60.0, 6.0, 0.1);
+    masterLevelMeter.slider.setRange(-40.0, 6.0, 0.1);
     masterLevelMeter.slider.setValue(0.0, juce::dontSendNotification);
 
     masterPanKnob.slider.setRange(-1.0, 1.0, 0.01);
     masterPanKnob.slider.setValue(0.0, juce::dontSendNotification);
     masterPanKnob.slider.getProperties().set ("drawFromCentre", true);
 
-    masterAuxSendMeter.slider.setRange(-60.0, 6.0, 0.1);
-    masterAuxSendMeter.slider.setValue(-60.0, juce::dontSendNotification);
+    masterAuxSendMeter.slider.setRange(-40.0, 6.0, 0.1);
+    masterAuxSendMeter.slider.setValue(-40.0, juce::dontSendNotification);
 
     // --- Setup Row Labels ---
     auto setupLabel = [this] (juce::Label& label)
@@ -273,6 +293,12 @@ void RhythmicGateAudioProcessorEditor::resized()
     labelPanel.items.add(juce::FlexItem(auxLabel).withFlex(1.0f).withMargin(2));
     labelPanel.items.add(juce::FlexItem(linkLabel).withHeight(20.0f).withMargin(juce::FlexItem::Margin(2, 2, 2, 2)));
 
+    // Horizontal box for the master on/off buttons
+    juce::FlexBox masterOnOffBox;
+    masterOnOffBox.flexDirection = juce::FlexBox::Direction::row;
+    masterOnOffBox.items.add(juce::FlexItem(masterOnButton).withFlex(1.0f));
+    masterOnOffBox.items.add(juce::FlexItem(masterOffButton).withFlex(1.0f));
+
     // Horizontal box for the link control buttons, now on the right side
     juce::FlexBox linkButtonsBox;
     linkButtonsBox.flexDirection = juce::FlexBox::Direction::row;
@@ -283,7 +309,7 @@ void RhythmicGateAudioProcessorEditor::resized()
     // Vertical box for labels on the right
     juce::FlexBox rightPanel;
     rightPanel.flexDirection = juce::FlexBox::Direction::column;
-    rightPanel.items.add(juce::FlexItem().withFlex(0.5f).withMargin(juce::FlexItem::Margin(2, 2, 2, 2))); // Spacer for On/Off row
+    rightPanel.items.add(juce::FlexItem(masterOnOffBox).withFlex(0.5f).withMargin(juce::FlexItem::Margin(2, 2, 2, 2)));
     rightPanel.items.add(juce::FlexItem(masterDurationKnob).withFlex(1.0f).withMargin(2));
     rightPanel.items.add(juce::FlexItem(masterPanKnob).withFlex(1.0f).withMargin(2));
     rightPanel.items.add(juce::FlexItem(masterLevelMeter).withFlex(1.0f).withMargin(2));
@@ -295,7 +321,7 @@ void RhythmicGateAudioProcessorEditor::resized()
     mainLayout.items.add(juce::FlexItem(leftPanel).withFlex(1.5f).withMargin(juce::FlexItem::Margin(0.f, 5.f, 0.f, 0.f)));
     mainLayout.items.add(juce::FlexItem(sequencerRow).withFlex(16.0f));
     mainLayout.items.add(juce::FlexItem(labelPanel).withFlex(1.f));
-    mainLayout.items.add(juce::FlexItem(rightPanel).withFlex(1.f));
+    mainLayout.items.add(juce::FlexItem(rightPanel).withFlex(1.2f));
 
     mainLayout.performLayout(bounds.reduced(10));
 }
@@ -335,7 +361,7 @@ void RhythmicGateAudioProcessorEditor::updateStepComponentVisibility()
 
 void RhythmicGateAudioProcessorEditor::updateStepAccents()
 {
-    // ComboBox IDs are 1-based. Ternary metrics have even IDs (2, 4, 6).
+    // Ternary metrics have even IDs (2, 4, 6) in the new order.
     const bool isTernary = (metricSelector.getSelectedId() % 2 == 0);
 
     for (int i = 0; i < RhythmicGateAudioProcessor::NUM_STEPS; ++i)

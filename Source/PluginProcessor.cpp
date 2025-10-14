@@ -119,13 +119,13 @@ void RhythmicGateAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     switch (metricIndex)
     {
-        case 0: stepDurationInPpq = 0.125;              break; // 32nd
-        case 1: stepDurationInPpq = 0.25 / 3.0;         break; // 32nd Triplet
+        case 0: stepDurationInPpq = 0.5;                break; // 8th
+        case 1: stepDurationInPpq = 1.0 / 3.0;          break; // 8th Triplet
         case 2: stepDurationInPpq = 0.25;               break; // 16th
         case 3: stepDurationInPpq = 0.5 / 3.0;          break; // 16th Triplet
-        case 4: stepDurationInPpq = 0.5;                break; // 8th
-        case 5: stepDurationInPpq = 1.0 / 3.0;          break; // 8th Triplet
-        default: stepDurationInPpq = 0.25;              break; // Fallback to 16th
+        case 4: stepDurationInPpq = 0.125;              break; // 32nd
+        case 5: stepDurationInPpq = 0.25 / 3.0;         break; // 32nd Triplet
+        default: stepDurationInPpq = 0.25;              break; // Fallback to 16th (default)
     }
 
     double sequenceDurationInPpq = numSteps * stepDurationInPpq;
@@ -220,8 +220,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout RhythmicGateAudioProcessor::
 
     // Global Metric Control
     params.push_back(std::make_unique<juce::AudioParameterChoice>("METRIC", "Metric", 
-        juce::StringArray{"32nd", "32nd T", "16th", "16th T", "8th", "8th T"}, 
-        2)); // Default to 16th
+        juce::StringArray{"8th", "8th T", "16th", "16th T", "32nd", "32nd T"},
+        2)); // Default to 16th (index 2)
 
     params.push_back(std::make_unique<juce::AudioParameterInt>("STEPS", "Steps", 2, 16, 16));
 
@@ -255,13 +255,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout RhythmicGateAudioProcessor::
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             ParameterID::get(step, "LVL"),
             "Level",
-            juce::NormalisableRange<float>(-60.0f, 6.0f, 0.1f),
+            juce::NormalisableRange<float>(-40.0f, 6.0f, 0.1f),
             0.0f, "dB")); // Default level 0 dB
 
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             ParameterID::get(step, "AUX_LVL"),
             "Aux Send",
-            juce::NormalisableRange<float>(-60.0f, 6.0f, 0.1f),
+            juce::NormalisableRange<float>(-40.0f, 6.0f, 0.1f),
             -60.0f, "dB")); // Default aux send -inf
 
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
