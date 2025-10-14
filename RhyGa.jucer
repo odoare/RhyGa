@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="Wefjnq" name="RhyGa" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" pluginFormats="buildStandalone,buildVST,buildVST3">
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" pluginFormats="buildStandalone,buildVST,buildVST3"
+              version="0.1" companyName="FX-Mechanics" companyWebsite="www.fx-mechanics.com"
+              pluginManufacturerCode="FXME" pluginDesc="Rhytmic gate" pluginCode="RYGA">
   <MAINGROUP id="fbiQUl" name="RhyGa">
     <GROUP id="{F0E0AD2B-4CDD-7C14-456A-3C0E5BFE9D85}" name="Assets">
       <FILE id="jgCPuh" name="logo686.png" compile="0" resource="1" file="Source/assets/logo686.png"/>
