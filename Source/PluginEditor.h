@@ -67,8 +67,8 @@ public:
     void setActive(bool isActive);
     void setAccented(bool shouldBeAccented);
     
-    FxmeLevelMeter durationKnob;
-    FxmeLevelMeter panKnob;
+    FxmeLevelMeter durationSlider;
+    FxmeLevelMeter panSlider;
     FxmeLevelMeter levelMeter;
     FxmeLevelMeter auxSendMeter;
     fxme::FxmeButton linkButton;
@@ -114,8 +114,8 @@ private:
     fxme::FxmeKnob releaseKnob;
 
     // Master knobs for controlling rows
-    FxmeLevelMeter masterDurationKnob;
-    FxmeLevelMeter masterPanKnob;
+    FxmeLevelMeter masterdurationSlider;
+    FxmeLevelMeter masterpanSlider;
     FxmeLevelMeter masterLevelMeter;
     FxmeLevelMeter masterAuxSendMeter;
 

@@ -8,8 +8,8 @@
 StepComponent::StepComponent(RhythmicGateAudioProcessor& p, int step, juce::LookAndFeel_V4& lookAndFeel) :
     stepIndex(step),
     onOffButton(p.apvts, ParameterID::get(step, "ON"), "", juce::Colours::cyan), // onOffButton is now private
-    durationKnob(p.apvts, ParameterID::get(step, "DUR"), juce::Colours::magenta.darker(1.2f), juce::Slider::LinearHorizontal),
-    panKnob(p.apvts, ParameterID::get(step, "PAN"), juce::Colours::orange.darker(), juce::Slider::LinearHorizontal),
+    durationSlider(p.apvts, ParameterID::get(step, "DUR"), juce::Colours::magenta.darker(1.2f), juce::Slider::LinearHorizontal),
+    panSlider(p.apvts, ParameterID::get(step, "PAN"), juce::Colours::orange.darker(), juce::Slider::LinearHorizontal),
     levelMeter(p.apvts, ParameterID::get(step, "LVL"), juce::Colours::green),
     auxSendMeter(p.apvts, ParameterID::get(step, "AUX_LVL"), juce::Colours::cornflowerblue),
     linkButton(p.apvts, ParameterID::get(step, "LINK"), "", juce::Colours::grey.darker())
@@ -18,12 +18,12 @@ StepComponent::StepComponent(RhythmicGateAudioProcessor& p, int step, juce::Look
     addAndMakeVisible(onOffButton);
     onOffButton.setLookAndFeel(&lookAndFeel);
 
-    addAndMakeVisible(durationKnob);
-    durationKnob.setLookAndFeel(&lookAndFeel);
+    addAndMakeVisible(durationSlider);
+    durationSlider.setLookAndFeel(&lookAndFeel);
     
-    addAndMakeVisible(panKnob);
-    panKnob.setLookAndFeel(&lookAndFeel);
-    panKnob.slider.getProperties().set ("drawFromCentre", true);
+    addAndMakeVisible(panSlider);
+    panSlider.setLookAndFeel(&lookAndFeel);
+    panSlider.slider.getProperties().set ("drawFromCentre", true);
 
     addAndMakeVisible(levelMeter);
     addAndMakeVisible(auxSendMeter);
@@ -41,8 +41,8 @@ void StepComponent::resized()
     juce::FlexBox mainBox;
     mainBox.flexDirection = juce::FlexBox::Direction::column;
     mainBox.items.add(juce::FlexItem(onOffButton).withFlex(0.5f).withMargin(2));
-    mainBox.items.add(juce::FlexItem(durationKnob).withFlex(1.0f).withMargin(margin));
-    mainBox.items.add(juce::FlexItem(panKnob).withFlex(1.0f).withMargin(margin));
+    mainBox.items.add(juce::FlexItem(durationSlider).withFlex(1.0f).withMargin(margin));
+    mainBox.items.add(juce::FlexItem(panSlider).withFlex(1.0f).withMargin(margin));
     mainBox.items.add(juce::FlexItem(levelMeter).withFlex(1.0f).withMargin(margin));
     mainBox.items.add(juce::FlexItem(auxSendMeter).withFlex(1.0f).withMargin(margin));
     mainBox.items.add(juce::FlexItem(linkButton).withFlex(0.5f).withMargin(juce::FlexItem::Margin(2.f, 15.f, 2.f, 15.f)));
@@ -90,8 +90,8 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
     : AudioProcessorEditor (&p), audioProcessor (p),
       attackKnob(p.apvts, "ATTACK", "Attack", juce::Colours::orangered.darker()),
       releaseKnob(p.apvts, "RELEASE", "Release", juce::Colours::orangered.darker()),
-      masterDurationKnob(p.apvts, "MASTER_DUR", juce::Colours::magenta.darker(1.2f), juce::Slider::LinearHorizontal),
-      masterPanKnob(p.apvts, "MASTER_PAN", juce::Colours::orange.darker(), juce::Slider::LinearHorizontal),
+      masterdurationSlider(p.apvts, "MASTER_DUR", juce::Colours::magenta.darker(1.2f), juce::Slider::LinearHorizontal),
+      masterpanSlider(p.apvts, "MASTER_PAN", juce::Colours::orange.darker(), juce::Slider::LinearHorizontal),
       masterLevelMeter(p.apvts, "MASTER_LVL", juce::Colours::green),
       masterAuxSendMeter(p.apvts, "MASTER_AUX_LVL", juce::Colours::cornflowerblue)
 
@@ -188,7 +188,7 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
 
     // --- Configure Master Knobs --- (They are now attached to APVTS parameters for step 0)
     // The ranges and skew will be inherited from the APVTS parameters.
-    masterPanKnob.slider.getProperties().set ("drawFromCentre", true);
+    masterpanSlider.slider.getProperties().set ("drawFromCentre", true);
 
     // --- Setup Row Labels ---
     auto setupLabel = [this] (juce::Label& label)
@@ -226,8 +226,8 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
             }
         };
     };
-    setupMasterMeter(masterDurationKnob, &StepComponent::durationKnob);
-    setupMasterMeter(masterPanKnob,      &StepComponent::panKnob);
+    setupMasterMeter(masterdurationSlider, &StepComponent::durationSlider);
+    setupMasterMeter(masterpanSlider,      &StepComponent::panSlider);
     setupMasterMeter(masterLevelMeter,   &StepComponent::levelMeter);
     setupMasterMeter(masterAuxSendMeter, &StepComponent::auxSendMeter);
 
@@ -313,8 +313,8 @@ void RhythmicGateAudioProcessorEditor::resized()
     juce::FlexBox rightPanel;
     rightPanel.flexDirection = juce::FlexBox::Direction::column;
     rightPanel.items.add(juce::FlexItem(masterOnOffBox).withFlex(0.5f).withMargin(juce::FlexItem::Margin(2, 2, 2, 2)));
-    rightPanel.items.add(juce::FlexItem(masterDurationKnob).withFlex(1.0f).withMargin(2));
-    rightPanel.items.add(juce::FlexItem(masterPanKnob).withFlex(1.0f).withMargin(2));
+    rightPanel.items.add(juce::FlexItem(masterdurationSlider).withFlex(1.0f).withMargin(2));
+    rightPanel.items.add(juce::FlexItem(masterpanSlider).withFlex(1.0f).withMargin(2));
     rightPanel.items.add(juce::FlexItem(masterLevelMeter).withFlex(1.0f).withMargin(2));
     rightPanel.items.add(juce::FlexItem(masterAuxSendMeter).withFlex(1.0f).withMargin(2));
     rightPanel.items.add(juce::FlexItem(linkButtonsBox).withFlex(0.5f).withMargin(juce::FlexItem::Margin(2, 2, 2, 2)));
