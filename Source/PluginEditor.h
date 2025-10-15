@@ -16,7 +16,8 @@ public:
     FxmeLevelMeter(juce::AudioProcessorValueTreeState& apvts,
                    const juce::String& paramName,
                    juce::Colour meterColour = juce::Colours::white,
-                   juce::Slider::SliderStyle style = juce::Slider::LinearBarVertical)
+                   juce::Slider::SliderStyle style = juce::Slider::LinearBarVertical) :
+        apvtsRef(apvts), parameterID(paramName)
     {
         // Use an internal slider to manage the parameter and drawing
         slider.setSliderStyle(style);
@@ -44,8 +45,15 @@ public:
 
     juce::Slider slider; // Public to allow access from master controls.
 
+    juce::RangedAudioParameter* getParameter() const
+    {
+        return apvtsRef.getParameter(parameterID);
+    }
+
 private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attachment;
+    juce::AudioProcessorValueTreeState& apvtsRef;
+    juce::String parameterID;
 };
 
 // A simple component to group the 4 controls for a single step
@@ -59,19 +67,19 @@ public:
     void setActive(bool isActive);
     void setAccented(bool shouldBeAccented);
     
-    FxmeButton onOffButton; // Assuming FxmeButton is in the global namespace as per original structure
     FxmeLevelMeter durationKnob;
     FxmeLevelMeter panKnob;
     FxmeLevelMeter levelMeter;
     FxmeLevelMeter auxSendMeter;
-    juce::ToggleButton linkButton;
+    fxme::FxmeButton linkButton;
+
+    const int stepIndex; // To store the step number for parameter access
 
 private:
-    using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
-    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
-
     bool active = false;
     bool isAccented = false;
+
+    FxmeButton onOffButton;
 };
 
 //==============================================================================

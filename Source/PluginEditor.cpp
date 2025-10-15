@@ -2,14 +2,17 @@
 #include "PluginEditor.h"
 
 //==============================================================================
+//==============================================================================
 // StepComponent Implementation
 //==============================================================================
 StepComponent::StepComponent(RhythmicGateAudioProcessor& p, int step, juce::LookAndFeel_V4& lookAndFeel) :
-    onOffButton(p.apvts, ParameterID::get(step, "ON"), "", juce::Colours::cyan),
+    stepIndex(step),
+    onOffButton(p.apvts, ParameterID::get(step, "ON"), "", juce::Colours::cyan), // onOffButton is now private
     durationKnob(p.apvts, ParameterID::get(step, "DUR"), juce::Colours::magenta.darker(1.2f), juce::Slider::LinearHorizontal),
     panKnob(p.apvts, ParameterID::get(step, "PAN"), juce::Colours::orange.darker(), juce::Slider::LinearHorizontal),
     levelMeter(p.apvts, ParameterID::get(step, "LVL"), juce::Colours::green),
-    auxSendMeter(p.apvts, ParameterID::get(step, "AUX_LVL"), juce::Colours::cornflowerblue)
+    auxSendMeter(p.apvts, ParameterID::get(step, "AUX_LVL"), juce::Colours::cornflowerblue),
+    linkButton(p.apvts, ParameterID::get(step, "LINK"), "", juce::Colours::grey.darker())
 {
     // On/Off Button
     addAndMakeVisible(onOffButton);
@@ -27,10 +30,7 @@ StepComponent::StepComponent(RhythmicGateAudioProcessor& p, int step, juce::Look
     levelMeter.setLookAndFeel(&lookAndFeel);
     auxSendMeter.setLookAndFeel(&lookAndFeel);
 
-    // Link Button (GUI only, no APVTS attachment)
-    linkButton.setButtonText(""); // Small indicator
-    linkButton.setToggleState(false, juce::dontSendNotification); // Default to not linked
-    linkButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::grey.darker());
+    // Link Button
     linkButton.setLookAndFeel(&lookAndFeel);
     addAndMakeVisible(linkButton);
 }
@@ -45,7 +45,7 @@ void StepComponent::resized()
     mainBox.items.add(juce::FlexItem(panKnob).withFlex(1.0f).withMargin(margin));
     mainBox.items.add(juce::FlexItem(levelMeter).withFlex(1.0f).withMargin(margin));
     mainBox.items.add(juce::FlexItem(auxSendMeter).withFlex(1.0f).withMargin(margin));
-    mainBox.items.add(juce::FlexItem(linkButton).withFlex(0.5f).withMargin(juce::FlexItem::Margin(2.f, 10.f, 2.f, 10.f)));
+    mainBox.items.add(juce::FlexItem(linkButton).withFlex(0.5f).withMargin(juce::FlexItem::Margin(2.f, 15.f, 2.f, 15.f)));
     mainBox.performLayout(getLocalBounds());
 }
 
@@ -90,10 +90,10 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
     : AudioProcessorEditor (&p), audioProcessor (p),
       attackKnob(p.apvts, "ATTACK", "Attack", juce::Colours::orangered.darker()),
       releaseKnob(p.apvts, "RELEASE", "Release", juce::Colours::orangered.darker()),
-      masterDurationKnob(p.apvts, "masterDur", juce::Colours::magenta.darker(1.2f), juce::Slider::LinearHorizontal),
-      masterPanKnob(p.apvts, "masterPan", juce::Colours::orange.darker(), juce::Slider::LinearHorizontal),
-      masterLevelMeter(p.apvts, "masterLvl", juce::Colours::green),
-      masterAuxSendMeter(p.apvts, "masterAux", juce::Colours::cornflowerblue)
+      masterDurationKnob(p.apvts, "MASTER_DUR", juce::Colours::magenta.darker(1.2f), juce::Slider::LinearHorizontal),
+      masterPanKnob(p.apvts, "MASTER_PAN", juce::Colours::orange.darker(), juce::Slider::LinearHorizontal),
+      masterLevelMeter(p.apvts, "MASTER_LVL", juce::Colours::green),
+      masterAuxSendMeter(p.apvts, "MASTER_AUX_LVL", juce::Colours::cornflowerblue)
 
 {
     // Global metric selector (reordered to match PluginProcessor.cpp)
@@ -130,8 +130,11 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
     masterOnButton.setColour(juce::TextButton::buttonColourId, juce::Colours::cyan.darker());
     masterOnButton.onClick = [this] {
         for (auto& step : stepComponents)
-            if (step->linkButton.getToggleState())
-                step->onOffButton.button.setToggleState(true, juce::sendNotification);
+            if (step->linkButton.button.getToggleState())
+            {
+                if (auto* param = audioProcessor.apvts.getParameter(ParameterID::get(step->stepIndex, "ON")))
+                    param->setValueNotifyingHost(1.0f); // Set ON parameter to true and notify GUI
+            }
     };
 
     addAndMakeVisible(masterOffButton);
@@ -139,33 +142,41 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
     masterOffButton.setColour(juce::TextButton::buttonColourId, juce::Colours::cyan.darker(2.0f));
     masterOffButton.onClick = [this] {
         for (auto& step : stepComponents)
-            if (step->linkButton.getToggleState())
-                step->onOffButton.button.setToggleState(false, juce::sendNotification);
+            if (step->linkButton.button.getToggleState())
+                if (auto* param = audioProcessor.apvts.getParameter(ParameterID::get(step->stepIndex, "ON")))
+                    param->setValueNotifyingHost(0.0f); // Set ON parameter to false and notify GUI
     };
 
     // --- Link Control Buttons ---
-    auto setupLinkButton = [this](juce::TextButton& button)
-    {
-        addAndMakeVisible(button);
-        button.setLookAndFeel(&fxmeLookAndFeel);
-    };
-
-    setupLinkButton(linkAllButton);
+    addAndMakeVisible(linkAllButton);
+    linkAllButton.setLookAndFeel(&fxmeLookAndFeel);
     linkAllButton.setColour(juce::TextButton::buttonColourId, juce::Colours::green);
     linkAllButton.onClick = [this] {
-        for (auto& step : stepComponents) step->linkButton.setToggleState(true, juce::dontSendNotification);
+        for (int i = 0; i < RhythmicGateAudioProcessor::NUM_STEPS; ++i) {
+            if (auto* param = audioProcessor.apvts.getParameter(ParameterID::get(i, "LINK")))
+                param->setValueNotifyingHost(1.0f);
+        }
     };
 
-    setupLinkButton(linkNoneButton);
+    addAndMakeVisible(linkNoneButton);
+    linkNoneButton.setLookAndFeel(&fxmeLookAndFeel);
     linkNoneButton.setColour(juce::TextButton::buttonColourId, juce::Colours::red);
     linkNoneButton.onClick = [this] {
-        for (auto& step : stepComponents) step->linkButton.setToggleState(false, juce::dontSendNotification);
+        for (int i = 0; i < RhythmicGateAudioProcessor::NUM_STEPS; ++i) {
+            if (auto* param = audioProcessor.apvts.getParameter(ParameterID::get(i, "LINK")))
+                param->setValueNotifyingHost(0.0f);
+        }
     };
 
-    setupLinkButton(linkInvertButton);
+    addAndMakeVisible(linkInvertButton);
+    linkInvertButton.setLookAndFeel(&fxmeLookAndFeel);
     linkInvertButton.setColour(juce::TextButton::buttonColourId, juce::Colours::orange);
     linkInvertButton.onClick = [this] {
-        for (auto& step : stepComponents) step->linkButton.setToggleState(!step->linkButton.getToggleState(), juce::dontSendNotification);
+        for (int i = 0; i < RhythmicGateAudioProcessor::NUM_STEPS; ++i)
+        {
+            if (auto* param = audioProcessor.apvts.getParameter(ParameterID::get(i, "LINK")))
+                param->setValueNotifyingHost(param->getValue() < 0.5f ? 1.0f : 0.0f);
+        }
     };
 
     // Create step components for each channel FIRST
@@ -175,20 +186,9 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
         addAndMakeVisible(*stepComponents[i]);
     }
 
-    // --- Configure Master Knobs ---
-    // Manually set their ranges and default values to match the step parameters
-    masterDurationKnob.slider.setRange(0.0, 1.0, 0.01);
-    masterDurationKnob.slider.setValue(1.0, juce::dontSendNotification);
-
-    masterLevelMeter.slider.setRange(-40.0, 6.0, 0.1);
-    masterLevelMeter.slider.setValue(0.0, juce::dontSendNotification);
-
-    masterPanKnob.slider.setRange(-1.0, 1.0, 0.01);
-    masterPanKnob.slider.setValue(0.0, juce::dontSendNotification);
+    // --- Configure Master Knobs --- (They are now attached to APVTS parameters for step 0)
+    // The ranges and skew will be inherited from the APVTS parameters.
     masterPanKnob.slider.getProperties().set ("drawFromCentre", true);
-
-    masterAuxSendMeter.slider.setRange(-40.0, 6.0, 0.1);
-    masterAuxSendMeter.slider.setValue(-40.0, juce::dontSendNotification);
 
     // --- Setup Row Labels ---
     auto setupLabel = [this] (juce::Label& label)
@@ -211,21 +211,24 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
         masterMeter.setLookAndFeel(&fxmeLookAndFeel);
         masterMeter.slider.onValueChange = [this, &masterMeter, stepMeterMember]
         {
-            double masterValue = masterMeter.slider.getValue();
+            // Get the normalized value from the master parameter (which is attached to step 0's parameter)
+            auto* masterParam = masterMeter.getParameter();
+            if (masterParam == nullptr) return;
+            float normalizedMasterValue = masterParam->getValue();
+
             for (auto& stepComp : stepComponents)
             {
-                if (stepComp->linkButton.getToggleState())
+                if (stepComp->linkButton.button.getToggleState()) // Check the APVTS parameter for the link button
                 {
-                    auto& stepSlider = (stepComp.get()->*stepMeterMember).slider;
-                    stepSlider.setValue(masterValue);
+                    // Get the corresponding parameter for the linked step and set its normalized value
+                    (stepComp.get()->*stepMeterMember).getParameter()->setValueNotifyingHost(normalizedMasterValue);
                 }
             }
         };
     };
-
     setupMasterMeter(masterDurationKnob, &StepComponent::durationKnob);
     setupMasterMeter(masterPanKnob,      &StepComponent::panKnob);
-    setupMasterMeter(masterLevelMeter, &StepComponent::levelMeter);
+    setupMasterMeter(masterLevelMeter,   &StepComponent::levelMeter);
     setupMasterMeter(masterAuxSendMeter, &StepComponent::auxSendMeter);
 
     addAndMakeVisible(logo);

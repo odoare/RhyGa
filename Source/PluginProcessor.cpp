@@ -255,13 +255,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout RhythmicGateAudioProcessor::
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             ParameterID::get(step, "LVL"),
             "Level",
-            juce::NormalisableRange<float>(-40.0f, 6.0f, 0.1f),
+            juce::NormalisableRange<float>(-60.0f, 6.0f, 0.1f, 4.0f),
             0.0f, "dB")); // Default level 0 dB
 
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             ParameterID::get(step, "AUX_LVL"),
             "Aux Send",
-            juce::NormalisableRange<float>(-40.0f, 6.0f, 0.1f),
+            juce::NormalisableRange<float>(-60.0f, 6.0f, 0.1f, 4.0f),
             -60.0f, "dB")); // Default aux send -inf
 
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -269,6 +269,24 @@ juce::AudioProcessorValueTreeState::ParameterLayout RhythmicGateAudioProcessor::
             "Pan",
             juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f),
             0.0f)); // Default pan center
+    }
+
+    // --- Master Control Parameters (for UI state saving, non-automatable) ---
+    auto nonAutomatableFloat = juce::AudioParameterFloatAttributes().withAutomatable(false);
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("MASTER_DUR", "Master Duration", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 1.0f, nonAutomatableFloat));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("MASTER_PAN", "Master Pan", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f), 0.0f, nonAutomatableFloat));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("MASTER_LVL", "Master Level", juce::NormalisableRange<float>(-60.0f, 6.0f, 0.1f, 4.0f), 0.0f, nonAutomatableFloat.withStringFromValueFunction ([](float v, int) { return juce::String (v, 1) + " dB"; })));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("MASTER_AUX_LVL", "Master Aux Send", juce::NormalisableRange<float>(-60.0f, 6.0f, 0.1f, 4.0f), -60.0f, nonAutomatableFloat.withStringFromValueFunction ([](float v, int) { return juce::String (v, 1) + " dB"; })));
+
+    // Link buttons (non-automatable as they are UI state rather than audio parameters)
+    for (int step = 0; step < NUM_STEPS; ++step)
+    {
+        auto attributes = juce::AudioParameterBoolAttributes()
+                              .withCategory (juce::AudioProcessorParameter::Category::genericParameter)
+                              .withAutomatable (false);
+
+        params.push_back (std::make_unique<juce::AudioParameterBool> (ParameterID::get (step, "LINK"), "Link " + juce::String (step), false, attributes));
     }
     return { params.begin(), params.end() };
 }
