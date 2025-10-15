@@ -243,30 +243,30 @@ juce::AudioProcessorValueTreeState::ParameterLayout RhythmicGateAudioProcessor::
     {
         params.push_back(std::make_unique<juce::AudioParameterBool>(
             ParameterID::get(step, "ON"),
-            "On",
+            "On " + juce::String(step + 1),
             true)); // Default to On
 
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             ParameterID::get(step, "DUR"),
-            "Duration",
+            "Duration " + juce::String(step + 1),
             juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f),
             1.0f)); // Default duration 1.0
 
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             ParameterID::get(step, "LVL"),
-            "Level",
+            "Level " + juce::String(step + 1),
             juce::NormalisableRange<float>(-60.0f, 6.0f, 0.1f, 4.0f),
             0.0f, "dB")); // Default level 0 dB
 
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             ParameterID::get(step, "AUX_LVL"),
-            "Aux Send",
+            "Aux Send " + juce::String(step + 1),
             juce::NormalisableRange<float>(-60.0f, 6.0f, 0.1f, 4.0f),
             -60.0f, "dB")); // Default aux send -inf
 
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             ParameterID::get(step, "PAN"),
-            "Pan",
+            "Pan " + juce::String(step + 1),
             juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f),
             0.0f)); // Default pan center
     }
