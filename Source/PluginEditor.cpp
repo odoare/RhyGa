@@ -193,7 +193,7 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
     // --- Setup Row Labels ---
     auto setupLabel = [this] (juce::Label& label)
     {
-        label.setFont (juce::Font (12.0f));
+        label.setFont (juce::Font (juce::FontOptions (12.0f)));
         label.setJustificationType (juce::Justification::centredRight);
         label.setColour (juce::Label::textColourId, juce::Colours::lightgrey);
         addAndMakeVisible (label);

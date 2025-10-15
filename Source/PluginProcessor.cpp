@@ -95,10 +95,19 @@ void RhythmicGateAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         return;
     }
 
-    juce::AudioPlayHead::CurrentPositionInfo positionInfo;
-    if (!playHead->getCurrentPosition(positionInfo) || !positionInfo.isPlaying)
+    auto optionalPositionInfo = playHead->getPosition();
+    if (!optionalPositionInfo.hasValue())
     {
-        // If not playing, mute all outputs to avoid stuck notes
+        // If no position info, mute all outputs
+        activeStep = -1; // Reset active step when not playing
+        buffer.clear();
+        return;
+    }
+
+    const auto& positionInfo = *optionalPositionInfo;
+    if (!positionInfo.getIsPlaying() || !positionInfo.getBpm().hasValue() || !positionInfo.getPpqPosition().hasValue())
+    {
+        // If not playing or missing vital info, mute all outputs to avoid stuck notes
         activeStep = -1; // Reset active step when not playing
         buffer.clear();
         return;
@@ -131,15 +140,15 @@ void RhythmicGateAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     double sequenceDurationInPpq = numSteps * stepDurationInPpq;
 
     // Calculate active step for the GUI using the correct step duration
-    double sequencePpqForGui = fmod(positionInfo.ppqPosition, sequenceDurationInPpq);
+    double sequencePpqForGui = fmod(*positionInfo.getPpqPosition(), sequenceDurationInPpq);
     activeStep = static_cast<int>(sequencePpqForGui / stepDurationInPpq);
 
 
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
     {
         // Calculate precise position for this sample
-        double ppqPerSample = positionInfo.bpm / (currentSampleRate * 60.0);
-        double currentPpq = positionInfo.ppqPosition + (sample * ppqPerSample);
+        double ppqPerSample = *positionInfo.getBpm() / (currentSampleRate * 60.0);
+        double currentPpq = *positionInfo.getPpqPosition() + (sample * ppqPerSample);
         
         // Find our position within the 32-step sequence
         double sequencePpq = fmod(currentPpq, sequenceDurationInPpq);
