@@ -199,7 +199,7 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
             {
                 // ...then find its parameter and get the new value.
                 // For a toggle button, the state has just been flipped by the click.
-                if (auto* sourceParam = sourceControl.getParameter(audioProcessor.apvts))
+                if (auto* sourceParam = sourceControl.getParameter())
                 {
                     float newValue = sourceParam->getValue();
 
@@ -210,7 +210,7 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
                         if (targetStep.get() != &sourceStep && targetStep->linkButton.button.getToggleState())
                         {
                             // ...update their corresponding parameter.
-                            if (auto* targetParam = (targetStep.get()->*stepControlMember).getParameter(audioProcessor.apvts))
+                            if (auto* targetParam = (targetStep.get()->*stepControlMember).getParameter())
                                 targetParam->setValueNotifyingHost(newValue);
                         }
                     }
