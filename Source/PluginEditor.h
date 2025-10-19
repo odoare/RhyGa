@@ -72,14 +72,13 @@ public:
     FxmeLevelMeter levelMeter;
     FxmeLevelMeter auxSendMeter;
     fxme::FxmeButton linkButton;
+    fxme::FxmeButton onOffButton;
 
     const int stepIndex; // To store the step number for parameter access
 
 private:
     bool active = false;
     bool isAccented = false;
-
-    FxmeButton onOffButton;
 };
 
 //==============================================================================
@@ -113,29 +112,20 @@ private:
     fxme::FxmeKnob attackKnob;
     fxme::FxmeKnob releaseKnob;
 
-    // Master knobs for controlling rows
-    FxmeLevelMeter masterdurationSlider;
-    FxmeLevelMeter masterpanSlider;
-    FxmeLevelMeter masterLevelMeter;
-    FxmeLevelMeter masterAuxSendMeter;
-
     std::array<std::unique_ptr<StepComponent>, RhythmicGateAudioProcessor::NUM_STEPS> stepComponents;
-
-    // Labels for the master control rows
-    juce::Label durationLabel { {}, "Duration" };
-    juce::Label panLabel      { {}, "Pan" };
-    juce::Label levelLabel    { {}, "Level" };
-    juce::Label auxLabel      { {}, "Aux" };
-    juce::Label linkLabel     { {}, "Link" };
 
     // Link control buttons
     juce::TextButton linkAllButton    { "1" };
     juce::TextButton linkNoneButton   { "0" };
     juce::TextButton linkInvertButton { "/" };
 
-    // Master On/Off buttons
-    juce::TextButton masterOnButton  { "On" };
-    juce::TextButton masterOffButton { "Off" };
+    // Labels for the master control rows
+    juce::Label onOffLabel { {}, "On/Off" };
+    juce::Label durationLabel { {}, "Duration" };
+    juce::Label panLabel      { {}, "Pan" };
+    juce::Label levelLabel    { {}, "Level" };
+    juce::Label auxLabel      { {}, "Aux" };
+    juce::Label linkLabel     { {}, "Link" };
 
     fxme::FxmeLookAndFeel fxmeLookAndFeel;
 

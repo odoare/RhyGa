@@ -7,7 +7,7 @@
 //==============================================================================
 StepComponent::StepComponent(RhythmicGateAudioProcessor& p, int step, juce::LookAndFeel_V4& lookAndFeel) :
     stepIndex(step),
-    onOffButton(p.apvts, ParameterID::get(step, "ON"), "", juce::Colours::cyan), // onOffButton is now private
+    onOffButton(p.apvts, ParameterID::get(step, "ON"), "", juce::Colours::cyan),
     durationSlider(p.apvts, ParameterID::get(step, "DUR"), juce::Colours::magenta.darker(1.2f), juce::Slider::LinearHorizontal),
     panSlider(p.apvts, ParameterID::get(step, "PAN"), juce::Colours::orange.darker(), juce::Slider::LinearHorizontal),
     levelMeter(p.apvts, ParameterID::get(step, "LVL"), juce::Colours::green),
@@ -89,12 +89,7 @@ void StepComponent::setAccented(bool shouldBeAccented)
 RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGateAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p),
       attackKnob(p.apvts, "ATTACK", "Attack", juce::Colours::orangered.darker()),
-      releaseKnob(p.apvts, "RELEASE", "Release", juce::Colours::orangered.darker()),
-      masterdurationSlider(p.apvts, "MASTER_DUR", juce::Colours::magenta.darker(1.2f), juce::Slider::LinearHorizontal),
-      masterpanSlider(p.apvts, "MASTER_PAN", juce::Colours::orange.darker(), juce::Slider::LinearHorizontal),
-      masterLevelMeter(p.apvts, "MASTER_LVL", juce::Colours::green),
-      masterAuxSendMeter(p.apvts, "MASTER_AUX_LVL", juce::Colours::cornflowerblue)
-
+      releaseKnob(p.apvts, "RELEASE", "Release", juce::Colours::orangered.darker())
 {
     // Global metric selector (reordered to match PluginProcessor.cpp)
     metricSelector.addItem("8th",    1);
@@ -124,29 +119,6 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
     releaseKnob.slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     releaseKnob.setLookAndFeel(&fxmeLookAndFeel);
     
-    // --- Master On/Off Buttons ---
-    addAndMakeVisible(masterOnButton);
-    masterOnButton.setLookAndFeel(&fxmeLookAndFeel);
-    masterOnButton.setColour(juce::TextButton::buttonColourId, juce::Colours::cyan.darker());
-    masterOnButton.onClick = [this] {
-        for (auto& step : stepComponents)
-            if (step->linkButton.button.getToggleState())
-            {
-                if (auto* param = audioProcessor.apvts.getParameter(ParameterID::get(step->stepIndex, "ON")))
-                    param->setValueNotifyingHost(1.0f); // Set ON parameter to true and notify GUI
-            }
-    };
-
-    addAndMakeVisible(masterOffButton);
-    masterOffButton.setLookAndFeel(&fxmeLookAndFeel);
-    masterOffButton.setColour(juce::TextButton::buttonColourId, juce::Colours::cyan.darker(2.0f));
-    masterOffButton.onClick = [this] {
-        for (auto& step : stepComponents)
-            if (step->linkButton.button.getToggleState())
-                if (auto* param = audioProcessor.apvts.getParameter(ParameterID::get(step->stepIndex, "ON")))
-                    param->setValueNotifyingHost(0.0f); // Set ON parameter to false and notify GUI
-    };
-
     // --- Link Control Buttons ---
     addAndMakeVisible(linkAllButton);
     linkAllButton.setLookAndFeel(&fxmeLookAndFeel);
@@ -179,57 +151,99 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
         }
     };
 
-    // Create step components for each channel FIRST
+    // --- Create and setup Step Components ---
     for (int i = 0; i < RhythmicGateAudioProcessor::NUM_STEPS; ++i)
     {
         stepComponents[i] = std::make_unique<StepComponent>(audioProcessor, i, fxmeLookAndFeel);
         addAndMakeVisible(*stepComponents[i]);
     }
 
-    // --- Configure Master Knobs --- (They are now attached to APVTS parameters for step 0)
-    // The ranges and skew will be inherited from the APVTS parameters.
-    masterpanSlider.slider.getProperties().set ("drawFromCentre", true);
+    // This helper sets up the callback for a control (like a slider or button)
+    // to update all other linked controls when its value changes.
+    auto setupLinkedControlCallbacks = [this](auto& sourceStep, auto& sourceControl, auto stepControlMember)
+    {
+        sourceControl.slider.onValueChange = [this, &sourceStep, &sourceControl, stepControlMember]
+        {
+            // If the step that was just changed is linked...
+            if (sourceStep.linkButton.button.getToggleState())
+            {
+                // ...then find its parameter and get the new value.
+                if (auto* sourceParam = sourceControl.getParameter())
+                {
+                    float newValue = sourceParam->getValue();
+
+                    // Iterate over all other steps...
+                    for (auto& targetStep : stepComponents)
+                    {
+                        // ...and if they are also linked (and not the source itself)...
+                        if (targetStep.get() != &sourceStep && targetStep->linkButton.button.getToggleState())
+                        {
+                            // ...update their corresponding parameter.
+                            if (auto* targetParam = (targetStep.get()->*stepControlMember).getParameter())
+                            {
+                                targetParam->setValueNotifyingHost(newValue);
+                            }
+                        }
+                    }
+                }
+            }
+        };
+    };
+
+    auto setupLinkedButtonCallbacks = [this](auto& sourceStep, auto& sourceControl, auto stepControlMember)
+    {
+        sourceControl.button.onClick = [this, &sourceStep, &sourceControl, stepControlMember]
+        {
+            // If the step that was just changed is linked...
+            if (sourceStep.linkButton.button.getToggleState())
+            {
+                // ...then find its parameter and get the new value.
+                // For a toggle button, the state has just been flipped by the click.
+                if (auto* sourceParam = sourceControl.getParameter(audioProcessor.apvts))
+                {
+                    float newValue = sourceParam->getValue();
+
+                    // Iterate over all other steps...
+                    for (auto& targetStep : stepComponents)
+                    {
+                        // ...and if they are also linked (and not the source itself)...
+                        if (targetStep.get() != &sourceStep && targetStep->linkButton.button.getToggleState())
+                        {
+                            // ...update their corresponding parameter.
+                            if (auto* targetParam = (targetStep.get()->*stepControlMember).getParameter(audioProcessor.apvts))
+                                targetParam->setValueNotifyingHost(newValue);
+                        }
+                    }
+                }
+            }
+        };
+    };
+
+    // Now, apply this logic to all sliders in all step components.
+    for (auto& step : stepComponents)
+    {
+        setupLinkedButtonCallbacks(*step, step->onOffButton, &StepComponent::onOffButton);
+        setupLinkedControlCallbacks(*step, step->durationSlider, &StepComponent::durationSlider);
+        setupLinkedControlCallbacks(*step, step->panSlider,      &StepComponent::panSlider);
+        setupLinkedControlCallbacks(*step, step->levelMeter,     &StepComponent::levelMeter);
+        setupLinkedControlCallbacks(*step, step->auxSendMeter,   &StepComponent::auxSendMeter);
+    }
 
     // --- Setup Row Labels ---
     auto setupLabel = [this] (juce::Label& label)
     {
-        label.setFont (juce::Font (juce::FontOptions (12.0f)));
-        label.setJustificationType (juce::Justification::centredRight);
+        label.setFont (juce::Font (juce::FontOptions (14.0f)));
+        label.setJustificationType (juce::Justification::centredLeft);
         label.setColour (juce::Label::textColourId, juce::Colours::lightgrey);
         addAndMakeVisible (label);
     };
+
+    setupLabel(onOffLabel);
     setupLabel(durationLabel);
     setupLabel(panLabel);
     setupLabel(levelLabel);
     setupLabel(auxLabel);
     setupLabel(linkLabel);
-
-    // --- Master Knobs Setup ---
-    auto setupMasterMeter = [this] (FxmeLevelMeter& masterMeter, auto stepMeterMember)
-    {
-        addAndMakeVisible(masterMeter);
-        masterMeter.setLookAndFeel(&fxmeLookAndFeel);
-        masterMeter.slider.onValueChange = [this, &masterMeter, stepMeterMember]
-        {
-            // Get the normalized value from the master parameter (which is attached to step 0's parameter)
-            auto* masterParam = masterMeter.getParameter();
-            if (masterParam == nullptr) return;
-            float normalizedMasterValue = masterParam->getValue();
-
-            for (auto& stepComp : stepComponents)
-            {
-                if (stepComp->linkButton.button.getToggleState()) // Check the APVTS parameter for the link button
-                {
-                    // Get the corresponding parameter for the linked step and set its normalized value
-                    (stepComp.get()->*stepMeterMember).getParameter()->setValueNotifyingHost(normalizedMasterValue);
-                }
-            }
-        };
-    };
-    setupMasterMeter(masterdurationSlider, &StepComponent::durationSlider);
-    setupMasterMeter(masterpanSlider,      &StepComponent::panSlider);
-    setupMasterMeter(masterLevelMeter,   &StepComponent::levelMeter);
-    setupMasterMeter(masterAuxSendMeter, &StepComponent::auxSendMeter);
 
     addAndMakeVisible(logo);
 
@@ -276,32 +290,6 @@ void RhythmicGateAudioProcessorEditor::resized()
     for (auto& step : stepComponents)
         sequencerRow.items.add(juce::FlexItem(*step).withFlex(1.0f));
 
-    // Vertical box for controls on the left
-    juce::FlexBox leftPanel;
-    leftPanel.flexDirection = juce::FlexBox::Direction::column;
-    leftPanel.items.add(juce::FlexItem(logo).withFlex(1.f));
-    leftPanel.items.add(juce::FlexItem(metricSelector).withFlex(.3f).withMargin(juce::FlexItem::Margin(5.f, 2.f, 5.f, 2.f)));
-    leftPanel.items.add(juce::FlexItem(stepsSelector).withFlex(.3f).withMargin(juce::FlexItem::Margin(2.f, 2.f, 5.f, 2.f)));
-    leftPanel.items.add(juce::FlexItem(attackKnob).withFlex(1.0f).withMargin(juce::FlexItem::Margin(5.0f, 2, 2, 2)));
-    leftPanel.items.add(juce::FlexItem(releaseKnob).withFlex(1.0f).withMargin(juce::FlexItem::Margin(5.0f, 2, 2.0f, 2)));
-    //leftPanel.items.add(juce::FlexItem().withFlex(0.4f)); // Spacer
-
-    // Vertical box for the new labels
-    juce::FlexBox labelPanel;
-    labelPanel.flexDirection = juce::FlexBox::Direction::column;
-    labelPanel.items.add(juce::FlexItem().withHeight(20.0f).withMargin(juce::FlexItem::Margin(2, 2, 2, 2))); // Spacer for On/Off
-    labelPanel.items.add(juce::FlexItem(durationLabel).withFlex(1.0f).withMargin(2));
-    labelPanel.items.add(juce::FlexItem(panLabel).withFlex(1.0f).withMargin(2));
-    labelPanel.items.add(juce::FlexItem(levelLabel).withFlex(1.0f).withMargin(2));
-    labelPanel.items.add(juce::FlexItem(auxLabel).withFlex(1.0f).withMargin(2));
-    labelPanel.items.add(juce::FlexItem(linkLabel).withHeight(20.0f).withMargin(juce::FlexItem::Margin(2, 2, 2, 2)));
-
-    // Horizontal box for the master on/off buttons
-    juce::FlexBox masterOnOffBox;
-    masterOnOffBox.flexDirection = juce::FlexBox::Direction::row;
-    masterOnOffBox.items.add(juce::FlexItem(masterOnButton).withFlex(1.0f));
-    masterOnOffBox.items.add(juce::FlexItem(masterOffButton).withFlex(1.0f));
-
     // Horizontal box for the link control buttons, now on the right side
     juce::FlexBox linkButtonsBox;
     linkButtonsBox.flexDirection = juce::FlexBox::Direction::row;
@@ -309,22 +297,34 @@ void RhythmicGateAudioProcessorEditor::resized()
     linkButtonsBox.items.add(juce::FlexItem(linkNoneButton).withFlex(1.0f));
     linkButtonsBox.items.add(juce::FlexItem(linkInvertButton).withFlex(1.0f));
 
-    // Vertical box for labels on the right
-    juce::FlexBox rightPanel;
-    rightPanel.flexDirection = juce::FlexBox::Direction::column;
-    rightPanel.items.add(juce::FlexItem(masterOnOffBox).withFlex(0.5f).withMargin(juce::FlexItem::Margin(2, 2, 2, 2)));
-    rightPanel.items.add(juce::FlexItem(masterdurationSlider).withFlex(1.0f).withMargin(2));
-    rightPanel.items.add(juce::FlexItem(masterpanSlider).withFlex(1.0f).withMargin(2));
-    rightPanel.items.add(juce::FlexItem(masterLevelMeter).withFlex(1.0f).withMargin(2));
-    rightPanel.items.add(juce::FlexItem(masterAuxSendMeter).withFlex(1.0f).withMargin(2));
-    rightPanel.items.add(juce::FlexItem(linkButtonsBox).withFlex(0.5f).withMargin(juce::FlexItem::Margin(2, 2, 2, 2)));
+    juce::FlexBox arBox;
+    arBox.flexDirection = juce::FlexBox::Direction::row;
+    arBox.items.add(juce::FlexItem(attackKnob).withFlex(1.0f));
+    arBox.items.add(juce::FlexItem(releaseKnob).withFlex(1.0f));
 
+    // Vertical box for controls on the left
+    juce::FlexBox leftPanel;
+    leftPanel.flexDirection = juce::FlexBox::Direction::column;
+    leftPanel.items.add(juce::FlexItem(logo).withFlex(1.f));
+    leftPanel.items.add(juce::FlexItem(metricSelector).withFlex(.25f).withMargin(juce::FlexItem::Margin(5.f, 2.f, 5.f, 2.f)));
+    leftPanel.items.add(juce::FlexItem(stepsSelector).withFlex(.25f).withMargin(juce::FlexItem::Margin(2.f, 2.f, 5.f, 2.f)));
+    leftPanel.items.add(juce::FlexItem(arBox).withFlex(1.1f).withMargin(juce::FlexItem::Margin(5.0f, 2, 2, 2)));
+    leftPanel.items.add(juce::FlexItem(linkButtonsBox).withFlex(0.3f));
+
+    // Vertical box for the new labels
+    juce::FlexBox labelPanel;
+    labelPanel.flexDirection = juce::FlexBox::Direction::column;
+    labelPanel.items.add(juce::FlexItem(onOffLabel).withHeight(20.0f).withMargin(juce::FlexItem::Margin(2, 2, 2, 2)));
+    labelPanel.items.add(juce::FlexItem(durationLabel).withFlex(1.0f).withMargin(2));
+    labelPanel.items.add(juce::FlexItem(panLabel).withFlex(1.0f).withMargin(2));
+    labelPanel.items.add(juce::FlexItem(levelLabel).withFlex(1.0f).withMargin(2));
+    labelPanel.items.add(juce::FlexItem(auxLabel).withFlex(1.0f).withMargin(2));
+    labelPanel.items.add(juce::FlexItem(linkLabel).withHeight(20.0f).withMargin(juce::FlexItem::Margin(2, 2, 2, 2)));
 
     // Add panels and sequencer to the main layout
-    mainLayout.items.add(juce::FlexItem(leftPanel).withFlex(1.5f).withMargin(juce::FlexItem::Margin(0.f, 5.f, 0.f, 0.f)));
+    mainLayout.items.add(juce::FlexItem(leftPanel).withFlex(2.f).withMargin(juce::FlexItem::Margin(0.f, 5.f, 0.f, 0.f)));
     mainLayout.items.add(juce::FlexItem(sequencerRow).withFlex(16.0f));
-    mainLayout.items.add(juce::FlexItem(labelPanel).withFlex(1.f));
-    mainLayout.items.add(juce::FlexItem(rightPanel).withFlex(1.2f));
+    mainLayout.items.add(juce::FlexItem(labelPanel).withFlex(1.2f));
 
     mainLayout.performLayout(bounds.reduced(10));
 }

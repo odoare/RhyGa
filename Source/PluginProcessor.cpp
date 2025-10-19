@@ -280,14 +280,6 @@ juce::AudioProcessorValueTreeState::ParameterLayout RhythmicGateAudioProcessor::
             0.0f)); // Default pan center
     }
 
-    // --- Master Control Parameters (for UI state saving, non-automatable) ---
-    auto nonAutomatableFloat = juce::AudioParameterFloatAttributes().withAutomatable(false);
-
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("MASTER_DUR", "Master Duration", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 1.0f, nonAutomatableFloat));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("MASTER_PAN", "Master Pan", juce::NormalisableRange<float>(-1.0f, 1.0f, 0.01f), 0.0f, nonAutomatableFloat));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("MASTER_LVL", "Master Level", juce::NormalisableRange<float>(-60.0f, 6.0f, 0.1f, 4.0f), 0.0f, nonAutomatableFloat.withStringFromValueFunction ([](float v, int) { return juce::String (v, 1) + " dB"; })));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("MASTER_AUX_LVL", "Master Aux Send", juce::NormalisableRange<float>(-60.0f, 6.0f, 0.1f, 4.0f), -60.0f, nonAutomatableFloat.withStringFromValueFunction ([](float v, int) { return juce::String (v, 1) + " dB"; })));
-
     // Link buttons (non-automatable as they are UI state rather than audio parameters)
     for (int step = 0; step < NUM_STEPS; ++step)
     {
