@@ -25,8 +25,11 @@ public:
 
     void paint (juce::Graphics&) override;
     void resized() override;
+    void mouseDown (const juce::MouseEvent& event) override;
 
     bool drawTitle;
+
+    std::function<void()> onClick;
 
 private:
     juce::Image logo;

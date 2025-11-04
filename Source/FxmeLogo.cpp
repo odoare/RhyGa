@@ -63,3 +63,11 @@ void FxmeLogo::resized()
     // components that your component contains..
 
 }
+
+void FxmeLogo::mouseDown(const juce::MouseEvent& event)
+{
+    if (onClick)
+    {
+        onClick();
+    }
+}

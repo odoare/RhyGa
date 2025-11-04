@@ -99,6 +99,7 @@ public:
     // UI update function
     void updateStepComponentVisibility();
     void updateStepAccents();
+    void randomizeParameters();
 
 private:
     RhythmicGateAudioProcessor& audioProcessor;

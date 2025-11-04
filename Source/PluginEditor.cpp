@@ -246,6 +246,8 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
     setupLabel(linkLabel);
 
     addAndMakeVisible(logo);
+    // Add the randomization callback when the logo is clicked
+    logo.onClick = [this] { randomizeParameters(); };
 
     // Set initial visibility of step components
     updateStepComponentVisibility();
@@ -383,5 +385,32 @@ void RhythmicGateAudioProcessorEditor::updateStepAccents()
                 shouldBeAccented = true;
         }
         stepComponents[i]->setAccented(shouldBeAccented);
+    }
+}
+
+void RhythmicGateAudioProcessorEditor::randomizeParameters()
+{
+    juce::Random random;
+
+    // We iterate through all parameters in the APVTS
+    for (auto* param : audioProcessor.getParameters())
+    {
+        // We only want to randomize per-step controls, not global ones like STEPS, ATTACK, or RELEASE.
+        // We also exclude the LINK parameters, which are for UI logic.
+        // To get the parameter ID, we must safely cast the base AudioProcessorParameter
+        // to the RangedAudioParameter that it actually is.
+        if (auto* rangedParam = dynamic_cast<juce::RangedAudioParameter*>(param))
+        {
+            const auto& paramID = rangedParam->getParameterID();
+
+            if (!paramID.startsWith("METRIC") &&
+                !paramID.startsWith("ATTACK") &&
+                !paramID.startsWith("RELEASE") &&
+                !paramID.contains("LINK"))
+            {
+                // Set the parameter to a random value within its normalized range (0.0 to 1.0).
+                param->setValueNotifyingHost(random.nextFloat());
+            }
+        }
     }
 }
