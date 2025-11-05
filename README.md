@@ -25,7 +25,7 @@
     *   Link steps together to edit their parameters simultaneously.
     *   Quickly turn all linked steps on or off.
     *   Instantly link all, none, or invert the current link selection.
-    **Randomize:**
+*   **Randomize:**
     *   Click on the Fx-Mechanics logo to get lucky!
 
 ## Usage Instructions
