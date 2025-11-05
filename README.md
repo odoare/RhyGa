@@ -5,12 +5,12 @@
 
 ## Description
 
-**RhyGa** is a versatile rhythmic gate effect for your DAW. It allows us to create tempo-synced patterns by modulating the volume of an incoming audio signal. With per-step controls for level, pan, duration, and an auxiliary send, you can transform static pads into pulsating rhythms, create complex stutter effects on vocals, or add dynamic movement to any track.
+**RhyGa** is a simple yet versatile rhythmic gate effect for your DAW. It allows us to create tempo-synced patterns by modulating the volume of an incoming audio signal. With per-step controls for level, pan, duration, and an auxiliary send, you can transform static pads into pulsating rhythms, create complex stutter effects on vocals, or add dynamic movement to any track.
 
 ## Features
 
 *   **16-Step Sequencer:** Create patterns up to 16 steps long.
-*   **DAW Synchronization:** The sequencer stays perfectly in time with your host's tempo and transport controls.
+*   **DAW Synchronization:** The sequencer stays in time with the DAW's tempo and transport controls.
 *   **Flexible Timing:** Choose from various metric subdivisions, including straight, triplet, and 32nd notes.
 *   **Dual Stereo Outputs:** A main stereo output and a separate stereo auxiliary output for parallel processing.
 *   **Per-Step Controls:**
@@ -21,10 +21,12 @@
     *   **Aux Send:** Set the send level to the auxiliary output, perfect for feeding delays or reverbs.
 *   **Global Controls:**
     *   **Attack & Release:** Shape the envelope of the gate for smooth or aggressive gating.
-*   **Powerful Linking System:**
-    *   Link steps together to edit their parameters simultaneously using the master controls.
+*   **Linking System:**
+    *   Link steps together to edit their parameters simultaneously.
     *   Quickly turn all linked steps on or off.
     *   Instantly link all, none, or invert the current link selection.
+    **Randomize:**
+    *   Click on the Fx-Mechanics logo to get lucky!
 
 ## Usage Instructions
 
