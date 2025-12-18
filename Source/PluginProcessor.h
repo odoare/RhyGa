@@ -76,12 +76,30 @@ private:
     std::array<std::atomic<float>*, NUM_STEPS> levelParams;
     std::array<std::atomic<float>*, NUM_STEPS> auxSendParams;
     std::array<std::atomic<float>*, NUM_STEPS> panParams;
+    std::array<std::atomic<float>*, NUM_STEPS> linkParams;
+
+    // Parameter objects for linking logic (access to normalized values and notification)
+    std::array<juce::AudioProcessorParameter*, NUM_STEPS> onOffParamObjects;
+    std::array<juce::AudioProcessorParameter*, NUM_STEPS> durationParamObjects;
+    std::array<juce::AudioProcessorParameter*, NUM_STEPS> levelParamObjects;
+    std::array<juce::AudioProcessorParameter*, NUM_STEPS> auxSendParamObjects;
+    std::array<juce::AudioProcessorParameter*, NUM_STEPS> panParamObjects;
+
+    // Last normalized values to detect changes
+    std::array<float, NUM_STEPS> lastOnOffValues;
+    std::array<float, NUM_STEPS> lastDurationValues;
+    std::array<float, NUM_STEPS> lastLevelValues;
+    std::array<float, NUM_STEPS> lastAuxSendValues;
+    std::array<float, NUM_STEPS> lastPanValues;
 
     double currentSampleRate = 44100.0;
+    double internalPpq = 0.0;
     
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> gateSmoother;
 
     float previousTargetGain = -1.0f;
+
+    void updateLinkedParameters();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (RhythmicGateAudioProcessor)
 };

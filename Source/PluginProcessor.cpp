@@ -31,8 +31,23 @@ RhythmicGateAudioProcessor::RhythmicGateAudioProcessor()
         levelParams[step]     = apvts.getRawParameterValue(ParameterID::get(step, "LVL"));
         auxSendParams[step]   = apvts.getRawParameterValue(ParameterID::get(step, "AUX_LVL"));
         panParams[step]       = apvts.getRawParameterValue(ParameterID::get(step, "PAN"));
+        linkParams[step]      = apvts.getRawParameterValue(ParameterID::get(step, "LINK"));
+
+        // Cache parameter objects and initial values for linking logic
+        onOffParamObjects[step]    = apvts.getParameter(ParameterID::get(step, "ON"));
+        durationParamObjects[step] = apvts.getParameter(ParameterID::get(step, "DUR"));
+        levelParamObjects[step]    = apvts.getParameter(ParameterID::get(step, "LVL"));
+        auxSendParamObjects[step]  = apvts.getParameter(ParameterID::get(step, "AUX_LVL"));
+        panParamObjects[step]      = apvts.getParameter(ParameterID::get(step, "PAN"));
+
+        lastOnOffValues[step]    = onOffParamObjects[step]->getValue();
+        lastDurationValues[step] = durationParamObjects[step]->getValue();
+        lastLevelValues[step]    = levelParamObjects[step]->getValue();
+        lastAuxSendValues[step]  = auxSendParamObjects[step]->getValue();
+        lastPanValues[step]      = panParamObjects[step]->getValue();
     }
     previousTargetGain = -1.0f; // Initialize with a value that guarantees the first check will trigger
+    internalPpq = 0.0;
 }
 
 RhythmicGateAudioProcessor::~RhythmicGateAudioProcessor()
@@ -51,6 +66,7 @@ void RhythmicGateAudioProcessor::prepareToPlay (double sampleRate, int samplesPe
     currentSampleRate = sampleRate;
     gateSmoother.reset(sampleRate, 0.0); // Reset smoother with sample rate
     previousTargetGain = -1.0f; // Also reset here in case of sample rate change
+    internalPpq = 0.0;
 }
 
 void RhythmicGateAudioProcessor::releaseResources()
@@ -105,13 +121,27 @@ void RhythmicGateAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     }
 
     const auto& positionInfo = *optionalPositionInfo;
-    if (!positionInfo.getIsPlaying() || !positionInfo.getBpm().hasValue() || !positionInfo.getPpqPosition().hasValue())
+
+    // Handle parameter linking before processing audio
+    updateLinkedParameters();
+
+    // Calculate BPM (default to 120 if unavailable) and PPQ increment per sample
+    auto bpmOpt = positionInfo.getBpm();
+    double bpm = bpmOpt.hasValue() ? *bpmOpt : 120.0;
+    double ppqPerSample = bpm / (currentSampleRate * 60.0);
+
+    // Determine the starting PPQ for this block
+    double currentBlockPpq = 0.0;
+
+    if (positionInfo.getIsPlaying() && positionInfo.getPpqPosition().hasValue())
     {
-        // If not playing or missing vital info, mute all outputs to avoid stuck notes
-        activeStep = -1; // Reset active step when not playing
-        buffer.clear();
-        return;
+        currentBlockPpq = *positionInfo.getPpqPosition();
     }
+    else
+    {
+        currentBlockPpq = internalPpq;
+    }
+    internalPpq = currentBlockPpq + buffer.getNumSamples() * ppqPerSample;
 
     // Get pointers to our separate output buses
     auto mainOutputBuffer = getBusBuffer(buffer, false, 0);
@@ -140,15 +170,14 @@ void RhythmicGateAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     double sequenceDurationInPpq = numSteps * stepDurationInPpq;
 
     // Calculate active step for the GUI using the correct step duration
-    double sequencePpqForGui = fmod(*positionInfo.getPpqPosition(), sequenceDurationInPpq);
+    double sequencePpqForGui = fmod(currentBlockPpq, sequenceDurationInPpq);
     activeStep = static_cast<int>(sequencePpqForGui / stepDurationInPpq);
 
 
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
     {
-        // Calculate precise position for this sample
-        double ppqPerSample = *positionInfo.getBpm() / (currentSampleRate * 60.0);
-        double currentPpq = *positionInfo.getPpqPosition() + (sample * ppqPerSample);
+        // Calculate precise position for this sample using the pre-calculated start PPQ
+        double currentPpq = currentBlockPpq + (sample * ppqPerSample);
         
         // Find our position within the 32-step sequence
         double sequencePpq = fmod(currentPpq, sequenceDurationInPpq);
@@ -199,6 +228,41 @@ void RhythmicGateAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             auxOutputBuffer.setSample(channel, sample, inputSample * gain * auxLevel * panGain);
         }
     }
+}
+
+void RhythmicGateAudioProcessor::updateLinkedParameters()
+{
+    // Helper lambda to handle linking for a specific parameter array
+    auto handleLinking = [this](std::array<juce::AudioProcessorParameter*, NUM_STEPS>& params,
+                                std::array<float, NUM_STEPS>& lastValues)
+    {
+        for (int i = 0; i < NUM_STEPS; ++i)
+        {
+            float currentValue = params[i]->getValue();
+            if (std::abs(currentValue - lastValues[i]) > 0.0001f) // Check for change
+            {
+                // If this step is linked, propagate to other linked steps
+                if (linkParams[i]->load() > 0.5f)
+                {
+                    for (int j = 0; j < NUM_STEPS; ++j)
+                    {
+                        if (i != j && linkParams[j]->load() > 0.5f)
+                        {
+                            params[j]->setValueNotifyingHost(currentValue);
+                            lastValues[j] = currentValue; // Update history to prevent feedback
+                        }
+                    }
+                }
+                lastValues[i] = currentValue;
+            }
+        }
+    };
+
+    handleLinking(onOffParamObjects, lastOnOffValues);
+    handleLinking(durationParamObjects, lastDurationValues);
+    handleLinking(levelParamObjects, lastLevelValues);
+    handleLinking(auxSendParamObjects, lastAuxSendValues);
+    handleLinking(panParamObjects, lastPanValues);
 }
 
 //==============================================================================
