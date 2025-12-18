@@ -1,3 +1,13 @@
+/*
+  ==============================================================================
+
+    PluginProcessor.h
+    Created: 01 Nov 2025 9:46:12pm
+    Author:  doare
+
+  ==============================================================================
+*/
+
 #pragma once
 
 #include <JuceHeader.h>
@@ -5,7 +15,7 @@
 // A helper function to generate consistent parameter IDs
 namespace ParameterID
 {
-    static juce::String get(int step, const juce::String& type)
+    inline juce::String get(int step, const juce::String& type)
     {
         return type + "_" + juce::String(step);
     }

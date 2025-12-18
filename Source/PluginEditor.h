@@ -1,85 +1,18 @@
+/*
+  ==============================================================================
+
+    PluginEditor.h
+    Created: 01 Nov 2025 9:46:12pm
+    Author:  doare
+
+  ==============================================================================
+*/
+
 #pragma once
-#include <FxmeJuceTools/Components/FxmeKnob.h>
-#include <FxmeJuceTools/Components/FxmeButton.h>
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 #include "FxmeLogo.h"
-
-//==============================================================================
-/** A vertical meter component that acts like a fader.
-    Draws a filled rectangle from the bottom up to represent the current value.
-    The value can be changed by clicking or dragging vertically.
-*/
-class FxmeLevelMeter : public juce::Component
-{
-public:
-    FxmeLevelMeter(juce::AudioProcessorValueTreeState& apvts,
-                   const juce::String& paramName,
-                   juce::Colour meterColour = juce::Colours::white,
-                   juce::Slider::SliderStyle style = juce::Slider::LinearBarVertical) :
-        apvtsRef(apvts), parameterID(paramName)
-    {
-        // Use an internal slider to manage the parameter and drawing
-        slider.setSliderStyle(style);
-        slider.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
-        slider.setColour(juce::Slider::trackColourId, meterColour);
-        addAndMakeVisible(slider);
-
-        // Only create an attachment if the parameter exists
-        if (apvts.getParameter(paramName) != nullptr)
-            attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(apvts, paramName, slider);
-    }
-    
-    // No longer needed, the LookAndFeel will handle drawing.
-    // void paint(juce::Graphics& g) override {}
-
-    void resized() override
-    {
-        slider.setBounds(getLocalBounds());
-    }
-
-    void setLookAndFeel(juce::LookAndFeel* newLookAndFeel)
-    {
-        slider.setLookAndFeel(newLookAndFeel);
-    }
-
-    juce::Slider slider; // Public to allow access from master controls.
-
-    juce::RangedAudioParameter* getParameter() const
-    {
-        return apvtsRef.getParameter(parameterID);
-    }
-
-private:
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attachment;
-    juce::AudioProcessorValueTreeState& apvtsRef;
-    juce::String parameterID;
-};
-
-// A simple component to group the 4 controls for a single step
-class StepComponent : public juce::Component
-{
-public:
-    StepComponent(RhythmicGateAudioProcessor& p, int step, juce::LookAndFeel_V4& lookAndFeel);
-    void resized() override;
-    void paint(juce::Graphics& g) override;
-
-    void setActive(bool isActive);
-    void setAccented(bool shouldBeAccented);
-    
-    FxmeLevelMeter durationSlider;
-    FxmeLevelMeter panSlider;
-    FxmeLevelMeter levelMeter;
-    FxmeLevelMeter auxSendMeter;
-    fxme::FxmeButton linkButton;
-    fxme::FxmeButton onOffButton;
-
-    const int stepIndex; // To store the step number for parameter access
-
-private:
-    bool active = false;
-    bool isAccented = false;
-};
+#include "StepComponent.h"
 
 //==============================================================================
 class RhythmicGateAudioProcessorEditor  : public juce::AudioProcessorEditor,

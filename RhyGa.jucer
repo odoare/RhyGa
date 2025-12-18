@@ -9,6 +9,11 @@
       <FILE id="jgCPuh" name="logo686.png" compile="0" resource="1" file="Source/assets/logo686.png"/>
     </GROUP>
     <GROUP id="{4EB6A103-36CC-841B-53B3-38FAE9D5BE71}" name="Source">
+      <FILE id="r5KrdG" name="FxmeLevelMeter.h" compile="0" resource="0"
+            file="Source/FxmeLevelMeter.h"/>
+      <FILE id="TbzJBA" name="StepComponent.cpp" compile="1" resource="0"
+            file="Source/StepComponent.cpp"/>
+      <FILE id="wxBx59" name="StepComponent.h" compile="0" resource="0" file="Source/StepComponent.h"/>
       <FILE id="Naywht" name="FxmeLogo.cpp" compile="1" resource="0" file="Source/FxmeLogo.cpp"/>
       <FILE id="m6fg39" name="FxmeLogo.h" compile="0" resource="0" file="Source/FxmeLogo.h"/>
       <FILE id="Xnh6F1" name="PluginProcessor.cpp" compile="1" resource="0"

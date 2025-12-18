@@ -1,87 +1,15 @@
+/*
+  ==============================================================================
+
+    PluginEditor.cpp
+    Created: 01 Nov 2025 9:46:12pm
+    Author:  doare
+
+  ==============================================================================
+*/
+
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-
-//==============================================================================
-//==============================================================================
-// StepComponent Implementation
-//==============================================================================
-StepComponent::StepComponent(RhythmicGateAudioProcessor& p, int step, juce::LookAndFeel_V4& lookAndFeel) :
-    stepIndex(step),
-    onOffButton(p.apvts, ParameterID::get(step, "ON"), "", juce::Colours::cyan),
-    durationSlider(p.apvts, ParameterID::get(step, "DUR"), juce::Colours::magenta.darker(1.2f), juce::Slider::LinearHorizontal),
-    panSlider(p.apvts, ParameterID::get(step, "PAN"), juce::Colours::orange.darker(), juce::Slider::LinearHorizontal),
-    levelMeter(p.apvts, ParameterID::get(step, "LVL"), juce::Colours::green),
-    auxSendMeter(p.apvts, ParameterID::get(step, "AUX_LVL"), juce::Colours::cornflowerblue),
-    linkButton(p.apvts, ParameterID::get(step, "LINK"), "", juce::Colours::grey.darker())
-{
-    // On/Off Button
-    addAndMakeVisible(onOffButton);
-    onOffButton.setLookAndFeel(&lookAndFeel);
-
-    addAndMakeVisible(durationSlider);
-    durationSlider.setLookAndFeel(&lookAndFeel);
-    
-    addAndMakeVisible(panSlider);
-    panSlider.setLookAndFeel(&lookAndFeel);
-    panSlider.slider.getProperties().set ("drawFromCentre", true);
-
-    addAndMakeVisible(levelMeter);
-    addAndMakeVisible(auxSendMeter);
-    levelMeter.setLookAndFeel(&lookAndFeel);
-    auxSendMeter.setLookAndFeel(&lookAndFeel);
-
-    // Link Button
-    linkButton.setLookAndFeel(&lookAndFeel);
-    addAndMakeVisible(linkButton);
-}
-
-void StepComponent::resized()
-{
-    static const int margin = 4;
-    juce::FlexBox mainBox;
-    mainBox.flexDirection = juce::FlexBox::Direction::column;
-    mainBox.items.add(juce::FlexItem(onOffButton).withFlex(0.5f).withMargin(2));
-    mainBox.items.add(juce::FlexItem(durationSlider).withFlex(1.0f).withMargin(margin));
-    mainBox.items.add(juce::FlexItem(panSlider).withFlex(1.0f).withMargin(margin));
-    mainBox.items.add(juce::FlexItem(levelMeter).withFlex(1.0f).withMargin(margin));
-    mainBox.items.add(juce::FlexItem(auxSendMeter).withFlex(1.0f).withMargin(margin));
-    mainBox.items.add(juce::FlexItem(linkButton).withFlex(0.5f).withMargin(juce::FlexItem::Margin(2.f, 15.f, 2.f, 15.f)));
-    mainBox.performLayout(getLocalBounds());
-}
-
-void StepComponent::paint(juce::Graphics& g)
-{
-    auto bounds = getLocalBounds();
-
-    if (active)
-    {
-        g.setColour(juce::Colours::white.withAlpha(0.6f));
-        g.fillRoundedRectangle(bounds.toFloat(), 4.0f);
-        g.drawRoundedRectangle(bounds.toFloat(), 4.0f, 2.0f);
-    }
-    else if (isAccented)
-    {
-        // Draw a slightly lighter background for accented steps
-        //auto backgroundColour = juce::Colour::fromFloatRGBA (0.15f, 0.15f, 0.25f, 1.0f);
-        g.setColour(juce::Colour::fromFloatRGBA (0.25f, 0.25f, 0.3f, 1.0f));
-        g.fillRoundedRectangle(bounds.toFloat(), 4.0f);
-    }
-}
-
-void StepComponent::setActive(bool isActive)
-{
-    active = isActive;
-    repaint();
-}
-
-void StepComponent::setAccented(bool shouldBeAccented)
-{
-    if (isAccented != shouldBeAccented)
-    {
-        isAccented = shouldBeAccented;
-        repaint();
-    }
-}
 
 //==============================================================================
 // Main Editor Implementation
@@ -154,7 +82,7 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
     // --- Create and setup Step Components ---
     for (int i = 0; i < RhythmicGateAudioProcessor::NUM_STEPS; ++i)
     {
-        stepComponents[i] = std::make_unique<StepComponent>(audioProcessor, i, fxmeLookAndFeel);
+        stepComponents[i] = std::make_unique<StepComponent>(audioProcessor.apvts, i, fxmeLookAndFeel);
         addAndMakeVisible(*stepComponents[i]);
     }
 
@@ -325,7 +253,7 @@ void RhythmicGateAudioProcessorEditor::randomizeParameters()
     for (auto* param : audioProcessor.getParameters())
     {
         // We only want to randomize per-step controls, not global ones like STEPS, ATTACK, or RELEASE.
-        // We also exclude the LINK parameters, which are for UI logic.
+        // We also exclude the LINK parameters
         // To get the parameter ID, we must safely cast the base AudioProcessorParameter
         // to the RangedAudioParameter that it actually is.
         if (auto* rangedParam = dynamic_cast<juce::RangedAudioParameter*>(param))
