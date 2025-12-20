@@ -12,6 +12,32 @@
 #include "PluginEditor.h"
 
 //==============================================================================
+const std::vector<RhythmicGateAudioProcessor::Metric>& RhythmicGateAudioProcessor::getMetrics()
+{
+    static const std::vector<Metric> metrics =
+    {
+        { "1/2",    2.0,         false },
+        { "1/2 T",  4.0 / 3.0,   true  },
+        { "1/2 D",  3.0,         false },
+        { "1/4",    1.0,         false },
+        { "1/4 T",  2.0 / 3.0,   true  },
+        { "1/4 D",  1.5,         false },
+        { "1/8",    0.5,         false },
+        { "1/8 T",  1.0 / 3.0,   true  },
+        { "1/8 D",  0.75,        false },
+        { "1/16",   0.25,        false },
+        { "1/16 T", 0.5 / 3.0,   true  },
+        { "1/16 D", 0.375,       false },
+        { "1/32",   0.125,       false },
+        { "1/32 T", 0.25 / 3.0,  true  },
+        { "1/32 D", 0.1875,      false },
+        { "1/64",   0.0625,      false },
+        { "1/64 T", 0.125 / 3.0, true  },
+        { "1/64 D", 0.09375,     false }
+    };
+    return metrics;
+}
+
 RhythmicGateAudioProcessor::RhythmicGateAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
      : AudioProcessor (BusesProperties()
@@ -164,18 +190,11 @@ void RhythmicGateAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     // --- Rhythmic Gate Logic ---
     int metricIndex = static_cast<int>(metricParam->load());
-    double stepDurationInPpq;
-
-    switch (metricIndex)
-    {
-        case 0: stepDurationInPpq = 0.5;                break; // 8th
-        case 1: stepDurationInPpq = 1.0 / 3.0;          break; // 8th Triplet
-        case 2: stepDurationInPpq = 0.25;               break; // 16th
-        case 3: stepDurationInPpq = 0.5 / 3.0;          break; // 16th Triplet
-        case 4: stepDurationInPpq = 0.125;              break; // 32nd
-        case 5: stepDurationInPpq = 0.25 / 3.0;         break; // 32nd Triplet
-        default: stepDurationInPpq = 0.25;              break; // Fallback to 16th (default)
-    }
+    
+    const auto& metrics = getMetrics();
+    double stepDurationInPpq = (metricIndex >= 0 && metricIndex < metrics.size()) 
+                               ? metrics[metricIndex].duration 
+                               : 0.25; // Default fallback
 
     double sequenceDurationInPpq = numSteps * stepDurationInPpq;
 
@@ -301,10 +320,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout RhythmicGateAudioProcessor::
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
+    juce::StringArray metricChoices;
+    for (const auto& m : getMetrics())
+        metricChoices.add(m.name);
+
     // Global Metric Control
     params.push_back(std::make_unique<juce::AudioParameterChoice>("METRIC", "Metric", 
-        juce::StringArray{"8th", "8th T", "16th", "16th T", "32nd", "32nd T"},
-        2)); // Default to 16th (index 2)
+        metricChoices,
+        9)); // Default to 1/16 (index 9)
 
     params.push_back(std::make_unique<juce::AudioParameterInt>("STEPS", "Steps", 2, 16, 16));
 

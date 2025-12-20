@@ -25,6 +25,14 @@ namespace ParameterID
 class RhythmicGateAudioProcessor  : public juce::AudioProcessor
 {
 public:
+    struct Metric
+    {
+        juce::String name;
+        double duration;
+        bool isTriplet;
+    };
+    static const std::vector<Metric>& getMetrics();
+
     //==============================================================================
     RhythmicGateAudioProcessor();
     ~RhythmicGateAudioProcessor() override;

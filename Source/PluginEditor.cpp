@@ -20,12 +20,11 @@ RhythmicGateAudioProcessorEditor::RhythmicGateAudioProcessorEditor (RhythmicGate
       releaseKnob(p.apvts, "RELEASE", "Release", juce::Colours::orangered.darker())
 {
     // Global metric selector (reordered to match PluginProcessor.cpp)
-    metricSelector.addItem("8th",    1);
-    metricSelector.addItem("8th T",  2);
-    metricSelector.addItem("16th",   3);
-    metricSelector.addItem("16th T", 4);
-    metricSelector.addItem("32nd",   5);
-    metricSelector.addItem("32nd T", 6);
+    const auto& metrics = RhythmicGateAudioProcessor::getMetrics();
+    for (int i = 0; i < metrics.size(); ++i)
+    {
+        metricSelector.addItem(metrics[i].name, i + 1);
+    }
     addAndMakeVisible(metricSelector);
     metricAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(audioProcessor.apvts, "METRIC", metricSelector);
     metricSelector.onChange = [this] { updateStepAccents(); };
@@ -223,8 +222,12 @@ void RhythmicGateAudioProcessorEditor::updateStepComponentVisibility()
 
 void RhythmicGateAudioProcessorEditor::updateStepAccents()
 {
-    // Ternary metrics have even IDs (2, 4, 6) in the new order.
-    const bool isTernary = (metricSelector.getSelectedId() % 2 == 0);
+    const auto& metrics = RhythmicGateAudioProcessor::getMetrics();
+    int selectedIndex = metricSelector.getSelectedId() - 1;
+    
+    bool isTernary = false;
+    if (selectedIndex >= 0 && selectedIndex < metrics.size())
+        isTernary = metrics[selectedIndex].isTriplet;
 
     for (int i = 0; i < RhythmicGateAudioProcessor::NUM_STEPS; ++i)
     {
