@@ -1,4 +1,4 @@
-# RhyGa, the Rhytmic Gate
+# RhyGa, the Rhythmic Gate
 
 ![image info](./doc/rhyga_screen.png)
 
